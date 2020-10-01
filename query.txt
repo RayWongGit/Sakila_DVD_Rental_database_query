@@ -1,0 +1,54 @@
+/* Query1: How many times has each family film been rented out? */
+	 select film_title, category_name, count(rental_id) as rental_count
+     from	
+     	(select f.title as film_title, c.name as category_name, r.rental_id
+     	from film f
+     	join film_category fc
+     	on f.film_id = fc.film_id
+     	join category c
+     	on c.category_id = fc.category_id
+     	join inventory i
+     	on i.film_id = f.film_id
+     	join rental r
+     	on r.inventory_id = i.inventory_id
+        where c.name in ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')) t1
+     group by film_title, category_name
+     order by category_name, film_title, rental_count desc
+
+/* Query2: What are the rental durations of each movie in each family friendly category compared to the quartile of all rental durations? */
+select f.title as film_title, c.name as 				category_name, f.rental_duration, 
+  	ntile(4) over(order by rental_duration) as 			quartile
+from film f
+join film_category fc
+on f.film_id = fc.film_id
+join category c
+on c.category_id = fc.category_id
+where c.name in ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+
+/* Query3: What are the count of films in each category and each rental duration quartile level? */
+select category_name, quartile, count(*) as n_films
+from
+  (select f.title as film_title, c.name as 				category_name, f.rental_duration, 
+      ntile(4) over(order by rental_duration) as 			quartile
+  from film f
+  join film_category fc
+  on f.film_id = fc.film_id
+  join category c
+  on c.category_id = fc.category_id
+  where c.name in ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')) t1
+group by category_name, quartile
+order by category_name, quartile 
+
+
+/* Query4: What are the count of rentals of store 1 and 2 by year and by month?*/
+     select DATE_TRUNC('month', rental_date) as rental_month, DATE_TRUNC('year', rental_date) as rental_year, store_id, count(*) as count_rentals
+     from 
+         (select store.store_id, r.rental_date
+         from rental r
+         join staff s
+         on r.staff_id = s.staff_id
+         join store
+         on store.store_id = s.store_id) t1
+group by 1, 2, 3
+order by count_rentals desc
+
